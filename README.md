@@ -108,7 +108,7 @@ db.dropDatabase();
   - autoIndexID (true / false default) - create an index under field **_ID**  
   - max -  maximum no of documents
 
- 
+
 
 ```shell
 # switch to  myblogs
@@ -264,4 +264,239 @@ db.studentsInfoCollection.remove({"subjects": "Maths"}, 1);
 # clean the collection
 db.studentsInfoCollection.remove({});
 ```
+
+#### Performance tuning
+
+##### Indexes
+
+- keys to the documents' locations
+- avoid scanning all documents
+
+```shell
+# query execution plan - general
+> db.studentsInfoCollection.find({"name.firstName": "Alun"}).explain();
+{
+	"queryPlanner" : {
+		"plannerVersion" : 1,
+		"namespace" : "classInfo.studentsInfoCollection",
+		"indexFilterSet" : false,
+		"parsedQuery" : {
+			"name.firstName" : {
+				"$eq" : "Alun"
+			}
+		},
+		"winningPlan" : {
+			"stage" : "COLLSCAN",
+			"filter" : {
+				"name.firstName" : {
+					"$eq" : "Alun"
+				}
+			},
+			"direction" : "forward"
+		},
+		"rejectedPlans" : [ ]
+	},
+	"serverInfo" : {
+		"host" : "tommic-desktop",
+		"port" : 27017,
+		"version" : "3.6.4",
+		"gitVersion" : "d0181a711f7e7f39e60b5aeb1dc7097bf6ae5856"
+	},
+	"ok" : 1
+}
+# query execution plan - executionStats
+> db.studentsInfoCollection.find({"name.firstName": "Alun"}).explain("executionStats")
+{
+	"queryPlanner" : {
+		"plannerVersion" : 1,
+		"namespace" : "classInfo.studentsInfoCollection",
+		"indexFilterSet" : false,
+		"parsedQuery" : {
+			"name.firstName" : {
+				"$eq" : "Alun"
+			}
+		},
+		"winningPlan" : {
+			"stage" : "COLLSCAN",
+			"filter" : {
+				"name.firstName" : {
+					"$eq" : "Alun"
+				}
+			},
+			"direction" : "forward"
+		},
+		"rejectedPlans" : [ ]
+	},
+	"executionStats" : {
+		"executionSuccess" : true,
+		"nReturned" : 1,
+		"executionTimeMillis" : 0,
+		"totalKeysExamined" : 0,
+		"totalDocsExamined" : 6,
+		"executionStages" : {
+			"stage" : "COLLSCAN",
+			"filter" : {
+				"name.firstName" : {
+					"$eq" : "Alun"
+				}
+			},
+			"nReturned" : 1,
+			"executionTimeMillisEstimate" : 0,
+			"works" : 8,
+			"advanced" : 1,
+			"needTime" : 6,
+			"needYield" : 0,
+			"saveState" : 0,
+			"restoreState" : 0,
+			"isEOF" : 1,
+			"invalidates" : 0,
+			"direction" : "forward",
+			"docsExamined" : 6
+		}
+	},
+	"serverInfo" : {
+		"host" : "tommic-desktop",
+		"port" : 27017,
+		"version" : "3.6.4",
+		"gitVersion" : "d0181a711f7e7f39e60b5aeb1dc7097bf6ae5856"
+	},
+	"ok" : 1
+}
+
+# quering by indexed field
+# "totalKeysExamined" : 1,
+# "totalDocsExamined" : 1,
+
+db.studentsInfoCollection.find({"_id": ObjectId("5ae6c3e33c9899fa1b25d009")}).explain("executionStats")
+{
+	"queryPlanner" : {
+		"plannerVersion" : 1,
+		"namespace" : "classInfo.studentsInfoCollection",
+		"indexFilterSet" : false,
+		"parsedQuery" : {
+			"_id" : {
+				"$eq" : ObjectId("5ae6c3e33c9899fa1b25d009")
+			}
+		},
+		"winningPlan" : {
+			"stage" : "IDHACK"
+		},
+		"rejectedPlans" : [ ]
+	},
+	"executionStats" : {
+		"executionSuccess" : true,
+		"nReturned" : 1,
+		"executionTimeMillis" : 0,
+		"totalKeysExamined" : 1,
+		"totalDocsExamined" : 1,
+		"executionStages" : {
+			"stage" : "IDHACK",
+			"nReturned" : 1,
+			"executionTimeMillisEstimate" : 0,
+			"works" : 2,
+			"advanced" : 1,
+			"needTime" : 0,
+			"needYield" : 0,
+			"saveState" : 0,
+			"restoreState" : 0,
+			"isEOF" : 1,
+			"invalidates" : 0,
+			"keysExamined" : 1,
+			"docsExamined" : 1
+		}
+	},
+	"serverInfo" : {
+		"host" : "tommic-desktop",
+		"port" : 27017,
+		"version" : "3.6.4",
+		"gitVersion" : "d0181a711f7e7f39e60b5aeb1dc7097bf6ae5856"
+	},
+	"ok" : 1
+}
+
+```
+
+##### Creating an Index
+
+```shell
+# creating an index 
+# 1 ascending
+# -1 descending
+> db.studentsInfoCollection.createIndex({"age":1});
+{
+	"createdCollectionAutomatically" : false,
+	"numIndexesBefore" : 1,
+	"numIndexesAfter" : 2,
+	"ok" : 1
+}
+
+```
+
+##### Finding Indexes
+
+```shell
+> db.studentsInfoCollection.getIndexes();
+[
+	{
+		"v" : 2,
+		"key" : {
+			"_id" : 1
+		},
+		"name" : "_id_",
+		"ns" : "classInfo.studentsInfoCollection"
+	},
+	{
+		"v" : 2,
+		# <FIELD>
+		"key" : {
+			"age" : 1
+		},
+		"name" : "age_1",
+		# <DB>.<COLLECTION>
+		"ns" : "classInfo.studentsInfoCollection"
+	}
+]
+
+```
+
+##### Dropping Index
+
+```shell
+> db.studentsInfoCollection.dropIndex("age_1");
+{ "nIndexesWas" : 2, "ok" : 1 }
+```
+
+#### ObjectIds in MongoDB
+
+- ObjectId = Primary key
+- Immutable
+- Unique
+- bson datatype
+- 12 byte value
+
+##### Creating ObjectIds
+
+```shell
+> db.productDetails.insert({"prdtName": "microphone"});
+WriteResult({ "nInserted" : 1 })
+# creating own ObjectId
+> db.productDetails.insert({_id:001, "prdtName": "Television"});
+WriteResult({ "nInserted" : 1 })
+
+```
+
+##### Advantages of Objectids created by MongoDB
+
+```shell
+> db.productDetails.find()[0]._id
+ObjectId("5ae710198e6e7ae9b2f8ea29")
+> db.productDetails.find()[0]._id.getTimestamp();
+ISODate("2018-04-30T12:46:17Z")
+```
+
+##### Disadvantages of Objectids created by MongoD
+
+- Cumbersome in rest apps when you want to go deep inside the resource: **bookShop/productDetails/1** 
+
+
 
