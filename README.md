@@ -499,4 +499,84 @@ ISODate("2018-04-30T12:46:17Z")
 - Cumbersome in rest apps when you want to go deep inside the resource: **bookShop/productDetails/1** 
 
 
+#### Aggregration Framework
+
+- Process data records and return results
+- Group values from various documents in colection together
+- Performs various operations on the grouped data
+- aggregate() method: `db.collectionName.aggregate();`
+  - `$sum`, `$avg`, `$min`, `$max`, `$first`, `$last`
+
+##### Using aggregate() method
+
+```shell
+> load("/opt/mongodb/ExerciseFiles/AggregationExample.js")
+# $group Group
+# _id By
+# total_posts - field with result
+# $sum: 1 - calculate records
+> db.AggregationExample.aggregate([{$group:{_id: "$author", total_posts: {$sum: 1}}}]);
+
+> db.AggregationExample.aggregate([{$group:{_id: "$author", total_posts: {$sum: $likes}}}]);
+```
+
+##### Using distinct() and count()
+
+```shell
+# returns distinct values of field  subjects
+> db.studentsInfoCollection.distinct("subjects");
+[
+	"Chemistry",
+	"English",
+	"Maths",
+	"Physics",
+	undefined,
+	"Journalist",
+	"Medium Business",
+	"Small Business"
+]
+# number of documents
+>  db.studentsInfoCollection.count();
+6
+# number of "Maths"
+> db.studentsInfoCollection.find({"subjects": "Maths"}).count();
+5
+```
+
+##### Sorting documents
+
+```shell
+# sort by age asc
+db.studentsInfoCollection.find().sort({"age":1}).pretty();
+# sort by age desc
+db.studentsInfoCollection.find().sort({"age":-1}).pretty();
+
+db.studentsInfoCollection.find().sort({"name.firstName": 1}).pretty();
+# print in a nautural order
+db.studentsInfoCollection.find().sort({$natural: 1}).pretty();
+```
+
+#### Data Modeling in MongoDB
+
+- Schemaless
+- Collections do not enforce a structure
+- We can map a document onto an object 
+- Referencing/Embedding
+
+##### Data Modeling using References
+
+```
+Employee Document{
+    id: <objectId_1>,
+    emply_name: "Sunil",
+    designation: "Trainer"
+}
+Address Document{
+    id: <objectId_2>,
+    emply_id: <objectId_1>,
+    city: "Bangalore",
+    Country: "India"
+}
+
+```
 
